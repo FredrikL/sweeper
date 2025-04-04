@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // GameModel represents the state of the Minesweeper game
@@ -102,11 +103,61 @@ func (m GameModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m GameModel) View() string {
 	var s string
 
-	// Game status
+	// Special end game victory screen
+	if m.gameWon {
+		// Create a celebratory victory screen
+		victoryStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("46")).
+			Bold(true).
+			Italic(true).
+			Background(lipgloss.Color("236")).
+			Padding(1, 3).
+			Align(lipgloss.Center).
+			BorderStyle(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("39"))
+
+		// Generate a trophy/celebration art
+		trophy := []string{
+			"  ___________  ",
+			" '._==_==_=_.' ",
+			" .-\\:      /-. ",
+			"| (|:.     |) |",
+			" '-|:.     |-' ",
+			"   \\::.    /   ",
+			"    '::. .'    ",
+			"      ) (      ",
+			"    _.' '._    ",
+			"   '-------'   ",
+		}
+
+		trophyStr := ""
+		for _, line := range trophy {
+			trophyStr += line + "\n"
+		}
+
+		message := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("226")).
+			Bold(true).
+			Render("VICTORY!")
+
+		subMessage := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("255")).
+			Render("All mines successfully found!")
+
+		controls := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("242")).
+			Render("Press 'q' to quit")
+
+		return victoryStyle.Render(
+			message + "\n\n" +
+				lipgloss.NewStyle().Foreground(lipgloss.Color("220")).Render(trophyStr) + "\n" +
+				subMessage + "\n\n" +
+				controls)
+	}
+
+	// Game over screen
 	if m.gameOver {
 		s += GameOverStyle.Render("Game Over! Press 'q' to quit.\n")
-	} else if m.gameWon {
-		s += GameWonStyle.Render("You Win! Press 'q' to quit.\n")
 	} else {
 		s += TitleStyle.Render("Minesweeper (Press 'q' to quit)\n")
 	}
@@ -122,6 +173,13 @@ func (m GameModel) View() string {
 
 			if x == m.cursorX && y == m.cursorY {
 				style = CursorStyle
+			}
+
+			// Show all mines when game is over
+			if m.gameOver && cell.IsMine {
+				style = RevealedStyle
+				row += style.Render("💣")
+				continue
 			}
 
 			if cell.IsRevealed {
