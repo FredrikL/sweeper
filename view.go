@@ -3,9 +3,11 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
-// View renders the current game state
+// View renders the current game state with synthwave styling
 func (m GameModel) View() string {
 	if m.gameWon {
 		return renderVictoryScreen()
@@ -13,14 +15,19 @@ func (m GameModel) View() string {
 
 	var s string
 
-	// Game over screen
+	// Game title with synthwave styling
+	titleText := "SYNTHWAVE MINESWEEPER"
 	if m.gameOver {
-		s += GameOverStyle.Render("Game Over! Press 'q' to quit.\n")
-	} else {
-		s += TitleStyle.Render("Minesweeper (Press 'q' to quit)\n")
+		titleText = "GAME OVER! Press 'q' to quit"
 	}
 
-	s += "\n"
+	title := lipgloss.NewStyle().
+		Foreground(neonPink).
+		Bold(true).
+		Padding(0, 0, 1, 0).
+		Render(titleText)
+
+	s += title + "\n"
 
 	// Board
 	s += renderBoard(m)
@@ -28,36 +35,49 @@ func (m GameModel) View() string {
 	// Instructions
 	s += renderInstructions()
 
-	return s
+	// Apply a simple border to the whole UI
+	return lipgloss.NewStyle().
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(neonPink).
+		Padding(1, 2).
+		Render(s)
 }
 
-// renderBoard renders the game board
+// renderBoard renders the game board with synthwave styling
 func renderBoard(m GameModel) string {
 	var s string
 
+	// Create header style for the coordinates
+	headerStyle := lipgloss.NewStyle().
+		Foreground(neonBlue).
+		Bold(true)
+
+	// Column headers
+	s += "   "
+	for x := 0; x < BoardWidth; x++ {
+		s += headerStyle.Render(fmt.Sprintf(" %d ", x%10))
+	}
+	s += "\n\n"
+
+	// Board rows
 	for y := 0; y < BoardHeight; y++ {
-		row := ""
+		// Row number
+		s += headerStyle.Render(fmt.Sprintf(" %d ", y%10)) + " "
+
 		for x := 0; x < BoardWidth; x++ {
 			cell := m.board[y][x]
 			style := UnrevealedStyle
 
 			if x == m.cursorX && y == m.cursorY {
 				style = CursorStyle
-			}
-
-			// Show all mines when game is over
-			if m.gameOver && cell.IsMine {
-				style = RevealedStyle
-				row += style.Render("💣")
-				continue
-			}
-
-			if cell.IsRevealed {
+			} else if cell.IsRevealed {
 				style = RevealedStyle
 			}
 
 			content := "■"
-			if !cell.IsRevealed {
+			if m.gameOver && cell.IsMine {
+				content = "💣"
+			} else if !cell.IsRevealed {
 				if cell.IsFlagged {
 					content = "⚑"
 				}
@@ -70,25 +90,34 @@ func renderBoard(m GameModel) string {
 				content = " "
 			}
 
-			row += style.Render(content)
+			s += style.Render(content)
 		}
-		s += row + "\n"
+		s += "\n"
 	}
 
 	return s
 }
 
-// renderInstructions renders the game controls instructions
+// renderInstructions renders the game controls instructions with synthwave styling
 func renderInstructions() string {
-	var s string
+	headerStyle := lipgloss.NewStyle().
+		Foreground(neonPink).
+		Bold(true)
 
-	s += "\nControls:\n"
-	s += "↑↓←→ or hjkl: Move cursor\n"
-	s += "Space/Enter: Reveal cell\n"
-	s += "f: Toggle flag\n"
-	s += "Left Click: Reveal cell\n"
-	s += "Right Click: Toggle flag\n"
-	s += "q: Quit\n"
+	controlStyle := lipgloss.NewStyle().
+		Foreground(neonBlue)
+
+	keyStyle := lipgloss.NewStyle().
+		Foreground(neonYellow).
+		Bold(true)
+
+	s := "\n" + headerStyle.Render("CONTROLS") + "\n\n"
+
+	s += controlStyle.Render("Move: ") + keyStyle.Render("↑↓←→") + controlStyle.Render(" or ") + keyStyle.Render("hjkl") + "\n"
+	s += controlStyle.Render("Reveal: ") + keyStyle.Render("Space") + " " + controlStyle.Render("or") + " " + keyStyle.Render("Enter") + "\n"
+	s += controlStyle.Render("Flag: ") + keyStyle.Render("f") + "\n"
+	s += controlStyle.Render("Mouse: ") + keyStyle.Render("Left click") + " = Reveal, " + keyStyle.Render("Right click") + " = Flag\n"
+	s += controlStyle.Render("Quit: ") + keyStyle.Render("q") + "\n"
 
 	return s
 }
